@@ -1,0 +1,717 @@
+public with sharing class OpportunityBO {
+
+  public static void shareOppPreVenda(List<Opportunity> newOpps, Map<Id,Opportunity> oldMap){
+
+    List<Opportunity> oppsToExecute = new List<Opportunity>();
+    Set<id> opps = new Set<id>();
+
+    for(Opportunity opp : newOpps) {
+      if (trigger.isInsert) {
+        if (opp.PreVenda__c != null || String.isNotBlank(opp.Equipe__c)) {
+          opps.add(opp.id);
+        }
+      }
+      else if (trigger.isUpdate) {
+        System.debug(opp.PreVenda__c);
+        System.debug(oldMap.get(opp.id).PreVenda__c);
+        if(opp.PreVenda__c != oldMap.get(opp.id).PreVenda__c || opp.Equipe__c != oldMap.get(opp.id).Equipe__c || opp.OwnerId != oldMap.get(opp.id).OwnerId) {
+          opps.add(opp.id);
+        }
+      }
+    }
+
+    System.debug(opps.Size());
+
+    if (opps.Size() > 0) {
+      OppSharing.shareOppPreVenda(opps);
+    }
+
+  }
+
+  /*
+   public static void shareOpportunityPreVenda(List<Opportunity> newOpportunitys,Map<Id,Opportunity> oldMap){
+    for(Opportunity opp:newOpportunitys) {
+        if(opp.PreVenda__c!=oldMap.get(opp.id).PreVenda__c || opp.Equipe__c!= oldMap.get(opp.id).Equipe__c) {
+            Compartilhamento compartilhamentoSo = new compartilhamento('OpportunityShare','Edit');
+            Compartilhamento.Item item1 = new Compartilhamento.Item();
+            item1.recordId = opp.id;
+            item1.userIdList = new List<id>();
+
+            if(opp.PreVenda__c!=null) {
+                item1.userIdList.add(opp.PreVenda__c);
+            }
+
+            Map<Id,Group> equipe = LeadDAO.getInstance().getEquipe(opp.Equipe__c);
+            if(!equipe.IsEmpty()) {
+                item1.userIdList.addAll(equipe.keySet());
+            }
+            CompartilhamentoSo.execute(new List<Compartilhamento.Item> {item1});
+        }
+    }
+   }
+  */
+
+  public static void translateCurrencyFieldsToText(List<Opportunity> ops) {
+    for(Opportunity op : ops) {
+
+      // ValorTotalSinal__c
+      if(op.ValorTotalSinal__c > 0) {
+        String valorTotalSinal = EscreveNumero.getInstance().formatarNumero(string.valueOf(op.ValorTotalSinal__c));
+        op.ValorTotalSinalPorExtenso__c = EscreveNumero.getInstance().transforma(valorTotalSinal);
+      }
+
+      // ValorTotalParcelas__c
+      if(op.ValorTotalParcelas__c > 0) {
+        String valorTotalParcelas = EscreveNumero.getInstance().formatarNumero(string.valueOf(op.ValorTotalParcelas__c));
+        op.ValorTotalParcelasPorExtenso__c = EscreveNumero.getInstance().transforma(valorTotalParcelas);
+      }
+
+      // ValorTotalMensais__c
+      if(op.ValorTotalMensais__c > 0) {
+        String valorTotalMensais = EscreveNumero.getInstance().formatarNumero(string.valueOf(op.ValorTotalMensais__c));
+        op.ValorTotalMensaisPorExtenso__c = EscreveNumero.getInstance().transforma(valorTotalMensais);
+      }
+
+      // ValorTotalFGTS__c
+      if(op.ValorTotalFGTS__c > 0) {
+        String valorTotalFGTS = EscreveNumero.getInstance().formatarNumero(string.valueOf(op.ValorTotalFGTS__c));
+        op.ValorTotalFGTSPorExtenso__c   = EscreveNumero.getInstance().transforma(valorTotalFGTS);
+      }
+
+      // ValorTotalFinanciamento__c
+      if(op.ValorTotalFinanciamento__c > 0) {
+        String valorTotalFinanciamento = EscreveNumero.getInstance().formatarNumero(string.valueOf(op.ValorTotalFinanciamento__c));
+        op.ValorTotalFinanciamentoPorExtenso__c = EscreveNumero.getInstance().transforma(valorTotalFinanciamento);
+      }
+
+      // VGV__c
+      if(op.VGV__c > 0) {
+        String valorVGV = EscreveNumero.getInstance().formatarNumero(string.valueOf(op.VGV__c));
+        op.VGVporExtenso__c = EscreveNumero.getInstance().transforma(valorVGV);
+      }
+
+      // QtdParcelasSinalPorExtenso__c
+      // QtdParcelasSinal__c
+      if(op.QtdParcelasSinal__c  > 0) {
+        op.QtdParcelasSinalPorExtenso__c = numeroExtenso(op.QtdParcelasSinal__c, true);
+      }
+
+      // QtdParcelasMensaisPorExtenso__c
+      // QtdParcelasMensais__c
+      if(op.QtdParcelasMensais__c > 0) {
+        op.QtdParcelasMensaisPorExtenso__c = numeroExtenso(op.QtdParcelasMensais__c, true);
+      }
+
+      // QtdParcelasFGTS__c
+      if(op.QtdParcelasFGTS__c  > 0) {
+        op.QtdParcelasFGTSPorExtenso__c = numeroExtenso(op.QtdParcelasFGTS__c, true);
+      }
+
+      // QtdParcelasFinanciamento__c
+      if(op.QtdParcelasFinanciamento__c  > 0) {
+        op.QtdParcelasFinanciamentoPorExtenso__c = numeroExtenso(op.QtdParcelasFinanciamento__c, true);
+      }
+
+      if(op.DiaVencimentoMensais__c  > 0) {
+        op.DiaVencimentoMensaisPorExtenso__c = numeroExtenso(op.DiaVencimentoMensais__c, false);
+      }
+
+    }
+  }
+
+  public static void translateCurrencyFieldsToText(List<Opportunity> ops, Map<Id,Opportunity> oldMap){
+    for(Opportunity op : ops) {
+
+      if(op.ValorTotalSinal__c != oldMap.get(op.id).ValorTotalSinal__c) {
+        String valorTotalSinal = EscreveNumero.getInstance().formatarNumero(string.valueOf(op.ValorTotalSinal__c));
+        op.ValorTotalSinalPorExtenso__c = EscreveNumero.getInstance().transforma(valorTotalSinal);
+      }
+
+      if(op.ValorTotalParcelas__c != oldMap.get(op.id).ValorTotalParcelas__c) {
+        String valorTotalParcelas = EscreveNumero.getInstance().formatarNumero(string.valueOf(op.ValorTotalParcelas__c));
+        op.ValorTotalParcelasPorExtenso__c = EscreveNumero.getInstance().transforma(valorTotalParcelas);
+      }
+
+      if(op.ValorTotalMensais__c != oldMap.get(op.id).ValorTotalMensais__c) {
+        String valorTotalMensais = EscreveNumero.getInstance().formatarNumero(string.valueOf(op.ValorTotalMensais__c));
+        op.ValorTotalMensaisPorExtenso__c = EscreveNumero.getInstance().transforma(valorTotalMensais);
+      }
+
+      if(op.ValorTotalFGTS__c != oldMap.get(op.id).ValorTotalFGTS__c) {
+        String valorTotalFGTS = EscreveNumero.getInstance().formatarNumero(string.valueOf(op.ValorTotalFGTS__c));
+        op.ValorTotalFGTSPorExtenso__c   = EscreveNumero.getInstance().transforma(valorTotalFGTS);
+      }
+
+      if(op.ValorTotalFinanciamento__c != oldMap.get(op.id).ValorTotalFinanciamento__c) {
+        String valorTotalFinanciamento = EscreveNumero.getInstance().formatarNumero(string.valueOf(op.ValorTotalFinanciamento__c));
+        op.ValorTotalFinanciamentoPorExtenso__c = EscreveNumero.getInstance().transforma(valorTotalFinanciamento);
+      }
+
+      if(op.VGV__c != oldMap.get(op.id).VGV__c) {
+        String valorVGV = EscreveNumero.getInstance().formatarNumero(string.valueOf(op.VGV__c));
+        op.VGVporExtenso__c = EscreveNumero.getInstance().transforma(valorVGV);
+      }
+
+      if(op.QtdParcelasSinal__c != oldMap.get(op.id).QtdParcelasSinal__c) {
+        op.QtdParcelasSinalPorExtenso__c = numeroExtenso(op.QtdParcelasSinal__c, true);
+      }
+
+      if(op.QtdParcelasMensais__c != oldMap.get(op.id).QtdParcelasMensais__c) {
+        op.QtdParcelasMensaisPorExtenso__c = numeroExtenso(op.QtdParcelasMensais__c, true);
+      }
+
+      if(op.QtdParcelasFGTS__c != oldMap.get(op.id).QtdParcelasFGTS__c) {
+        op.QtdParcelasFGTSPorExtenso__c = numeroExtenso(op.QtdParcelasFGTS__c, true);
+      }
+
+      if(op.QtdParcelasFinanciamento__c != oldMap.get(op.id).QtdParcelasFinanciamento__c) {
+        op.QtdParcelasFinanciamentoPorExtenso__c = numeroExtenso(op.QtdParcelasFinanciamento__c, true);
+      }
+
+      if(op.DiaVencimentoMensais__c  != oldMap.get(op.id).DiaVencimentoMensais__c) {
+        op.DiaVencimentoMensaisPorExtenso__c = numeroExtenso(op.DiaVencimentoMensais__c, false);
+      }
+
+    }
+  }
+
+  private static String numeroExtenso(Decimal index, Boolean parcela) {
+
+    Integer u,d, num = Integer.valueOf(index);
+    String extenso = '', conexao;
+    String[] unidade,dezena,dezenaespecial;
+    unidade        = new String[10];
+    dezena         = new String[10];
+    dezenaespecial = new String[10];
+    unidade[0] = '';
+    if(parcela) {
+      unidade[1] = 'uma';
+      unidade[2] = 'duas';
+    }else{
+      unidade[1] = 'um';
+      unidade[2] = 'dois';
+    }
+    unidade[3] = 'três';
+    unidade[4] = 'quatro';
+    unidade[5] = 'cinco';
+    unidade[6] = 'seis';
+    unidade[7] = 'sete';
+    unidade[8] = 'oito';
+    unidade[9] = 'nove';
+    dezena[0] = '';
+    dezena[1] = 'dez';
+    dezena[2] = 'vinte';
+    dezena[3] = 'trinta';
+    dezena[4] = 'quarenta';
+    dezena[5] = 'cinquenta';
+    dezena[6] = 'sessenta';
+    dezena[7] = 'setenta';
+    dezena[8] = 'oitenta';
+    dezena[9] = 'noventa';
+    dezenaespecial[0] = 'dez';
+    dezenaespecial[1] = 'onze';
+    dezenaespecial[2] = 'doze';
+    dezenaespecial[3] = 'treze';
+    dezenaespecial[4] = 'quatorze';
+    dezenaespecial[5] = 'quinze';
+    dezenaespecial[6] = 'dezesseis';
+    dezenaespecial[7] = 'dezessete';
+    dezenaespecial[8] = 'dezoito';
+    dezenaespecial[9] = 'dezenove';
+    if (num >= 1 && num <= 99)
+    {
+      d = num / 10;
+      u = Math.mod(num,10);
+      conexao = '';
+      if (d > 0 && u > 0)
+      {
+        conexao = ' e ';
+      }
+      if (num >= 10 && num <= 19)
+      {
+        extenso = dezenaespecial[ u ];
+      }
+      else
+      {
+        extenso = dezena[ d ] + conexao + unidade[ u ];
+      }
+    }
+
+    return (extenso);
+  }
+
+  @InvocableMethod
+  public static void countCPFComprador(List<ID> ids){
+
+    List<Comprador__c> compradores = [SELECT oportunidade__c FROM Comprador__c WHERE Cliente__c in:ids];
+    if(!compradores.IsEmpty()) {
+      List<Id> oppIds= new List<Id>();
+      List<Opportunity> oppsUpdate = new List<Opportunity>();
+
+      for(Comprador__c c:compradores) {
+        oppIds.add(c.oportunidade__c);
+      }
+
+      List<AggregateResult> countCpfs = [SELECT count(id),oportunidade__c FROM Comprador__c WHERE Cliente__r.CPF__c!=Null AND oportunidade__c in :oppIds AND Oportunidade__r.StageName != 'Perdido' GROUP BY oportunidade__c];
+      for (AggregateResult countCpf : countCpfs)  {
+        Opportunity oppUpdate = new Opportunity(Id=(Id)countCpf.get('oportunidade__c'),TotalCompradoresCPF__c=(Decimal)countCpf.get('expr0'));
+        oppsUpdate.add(oppUpdate);
+      }
+      update oppsUpdate;
+    }
+  }
+
+  /*
+    Método: validaPermissao()
+    Objetivo: Utilizado para impedir a mudança de fase manualmente (exceção apenas para usuários com permissão de edição da fase Ex.: Admin)
+    e para validar permissões de alteração nos registros de oportunidade na fase Análise de Crédito. Se o usuário não possuir a permissão de
+    alterar os campos, será exibido a 1ª mensagem.
+    Autor: Átila
+    Edição: Bárbara Bicalho
+    Data Edição: 24/04/2019
+  */
+  public static void validaPermissao(List<Opportunity> newOpportunitys, Map<Id,Opportunity> oldMap){
+
+    if(ProcessControl.ignoredByTrigger) {
+      return;
+    }
+
+    Boolean possuiPermissaoAlterarAnaliseCredito = FeatureManagement.checkPermission('PermiteAlterarValoresAnaliseCredito');
+    Boolean possuiPermissaoAlterarFase = FeatureManagement.checkPermission('PermiteAlterarFasesOpportunidade');
+
+    for (Opportunity oppNew : newOpportunitys) {
+      Opportunity oppOld = oldMap.get(oppNew.id);
+      
+          
+      if(OpportunityAvoidRecursion.isFirstRun()) {
+              
+        // System.debug('Primeira execução OPP');
+        // System.debug('possuiPermissaoAlterarAnaliseCredito: '+ possuiPermissaoAlterarAnaliseCredito);
+        // System.debug('possuiPermissaoAlterarFase: '+ possuiPermissaoAlterarFase);
+        // System.debug('StageName: '+ oppNew.StageName);
+        // System.debug('StageName Old: '+ oppOld.StageName);
+              
+        if(
+          Trigger.isUpdate && !possuiPermissaoAlterarAnaliseCredito && oppOld.StageName == 'Análise de crédito' && !oppNew.MoverParaDistrato__c
+          /*&&
+            !(
+              oppOld.StageName != oppNew.StageName
+          ||
+              oppOld.StatusAtividade__c != oppNew.StatusAtividade__c
+            )*/
+          ) {
+          oppNew.addError('Você não possui permissão para alterar essa Oportunidade estando na fase ' + oppOld.StageName + '.');
+        }
+        else if (
+          Trigger.isUpdate && !possuiPermissaoAlterarFase && oppOld.StageName != oppNew.StageName
+          ) {
+          oppNew.addError('Você não possui permissão para alterar a fase dessa Oportunidade.');
+        }
+      }
+
+    }
+  }
+
+  public static void changeUnidadeStageContratoEmAssinatura(List<Opportunity> newOpportunitys, Map<Id,Opportunity> oldMap){
+
+    List<Opportunity> oppsToUpdateGeracaoContrato = new List<Opportunity>();
+    Map<Id,Opportunity> oppsToUpdateAnaliseCredito = new Map<Id,Opportunity>();
+
+    for(Opportunity opp : newOpportunitys) {
+      system.debug(opp.Produto__c);
+      system.debug(oldMap.get(opp.id).Produto__c);
+      if((opp.Produto__c != oldMap.get(opp.Id).Produto__c) && !String.IsBlank(opp.Produto__c) && opp.StageName=='Contrato em Assinatura') {
+
+        System.debug('old');
+        System.debug('......... '+oldMap.get(opp.Id).ValorAvaliacao__c+' ................');
+        System.debug('......... '+oldMap.get(opp.Id).PercentualProSoluto__c+' ................');
+        System.debug('new');
+        System.debug('......... '+opp.ValorAvaliacao__c+' ................');
+        System.debug('......... '+opp.PercentualProSoluto__c+' ................');
+
+        Decimal valueOld = oldMap.get(opp.Id).ValorAvaliacaoAprovado__c*(1-(oldMap.get(opp.Id).PercentualProSolutoAprovado__c/100));
+        Decimal valueNew = opp.ValorAvaliacao__c*(1-(opp.PercentualProSoluto__c/100));
+
+        system.debug((opp.ValorAvaliacao__c == oldMap.get(opp.Id).ValorAvaliacaoAprovado__c) && (valueNew<=valueOld));
+        if((opp.ValorAvaliacao__c == oldMap.get(opp.Id).ValorAvaliacaoAprovado__c) && (valueNew<=valueOld)) {
+          oppsToUpdateGeracaoContrato.add(new opportunity(Id=opp.Id,StageName='Geração Contrato Passos'));
+        }else{
+          oppsToUpdateAnaliseCredito.put(Opp.Corretor__c,new opportunity(Id=opp.Id,StageName='Análise de crédito'));
+        }
+
+      }
+    }
+
+    if(!oppsToUpdateGeracaoContrato.IsEmpty()) {
+      update oppsToUpdateGeracaoContrato;
+    }
+
+    if(!oppsToUpdateAnaliseCredito.IsEmpty()) {
+
+      Map<Id,Corretor__c> corretores = new Map<Id,Corretor__c>([SELECT Id,OwnerId,Usuario__c FROM Corretor__c WHERE Id IN: oppsToUpdateAnaliseCredito.keySet()]);
+
+      for(Id id:oppsToUpdateAnaliseCredito.keySet()) {
+        ConnectApi.FeedItemInput feedItemInput = new ConnectApi.FeedItemInput();
+        ConnectApi.MessageBodyInput messageBodyInput = new ConnectApi.MessageBodyInput();
+        ConnectApi.TextSegmentInput textSegmentInput = new ConnectApi.TextSegmentInput();
+
+        messageBodyInput.messageSegments = new List<ConnectApi.MessageSegmentInput>();
+
+        ConnectApi.MentionSegmentInput mentionCreatedUser = new ConnectApi.MentionSegmentInput();
+        mentionCreatedUser.id = String.IsBlank(corretores.get(id).Usuario__c) ? corretores.get(id).Usuario__c : corretores.get(id).OwnerId;
+        messageBodyInput.messageSegments.add(mentionCreatedUser);
+
+        textSegmentInput.text = ' Oportunidade enviada para Análise de Crédito devido a troca de Unidade';
+        messageBodyInput.messageSegments.add(textSegmentInput);
+
+        feedItemInput.body = messageBodyInput;
+        feedItemInput.feedElementType = ConnectApi.FeedElementType.FeedItem;
+        feedItemInput.subjectId = oppsToUpdateAnaliseCredito.get(id).Id;
+
+        ConnectApi.FeedElement feedElement = ConnectApi.ChatterFeeds.postFeedElement(Network.getNetworkId(), feedItemInput);
+      }
+      system.debug(oppsToUpdateAnaliseCredito.values());
+      update oppsToUpdateAnaliseCredito.values();
+
+      List<id> ids = new List<Id>();
+      for(Opportunity oppts:oppsToUpdateAnaliseCredito.values()) {
+        ids.add(oppts.Id);
+      }
+      OportunidadePagamento.apagarFormaPagamento(ids);
+    }
+
+    oppsToUpdateGeracaoContrato.addAll(oppsToUpdateAnaliseCredito.values());
+
+    if(!oppsToUpdateGeracaoContrato.IsEmpty()) {
+      List<DocumentosOportunidade__c> contratos = [SELECT Id,Name FROM DocumentosOportunidade__c WHERE Name = 'CONTRATO VENDA' AND oportunidade__c IN :oppsToUpdateGeracaoContrato];
+      delete contratos;
+    }
+
+  }
+
+  public static void configuraCompradores(List<Opportunity> newOpportunitys){
+    List<Comprador__c> listaCompradores = [SELECT id, Oportunidade__c,
+                                          CompradorPrincipal__c,
+                                            PercentualParticipante__c,
+                                          ClienteName__c,
+                                          ClienteNacionalidade__c,
+                                          ClienteEstadoCivil__c,
+                                          ClienteProfissao__c,
+                                          ClienteNumeroDocumento__c,
+                                          CPF__c,
+                                          ClienteTelResCompleto__c,
+                                          ClienteTelCelCompleto__c,
+                                          ClienteEmail__c,
+                                          ClienteEnderecoCompleto__c,
+                                          Conjuge__c,
+                                          Conjuge__r.ClienteName__c,
+                                          Conjuge__r.ClienteNacionalidade__c,
+                                          Conjuge__r.ClienteEstadoCivil__c,
+                                          Conjuge__r.ClienteProfissao__c,
+                                          Conjuge__r.ClienteNumeroDocumento__c,
+                                          Conjuge__r.CPF__c,
+                                          Conjuge__r.ClienteTelResCompleto__c,
+                                          Conjuge__r.ClienteTelCelCompleto__c,
+                                          Conjuge__r.ClienteEmail__c
+                                          FROM Comprador__c WHERE Oportunidade__c IN :newOpportunitys AND TotalVezesConjuge__c = 0 AND TipoParticipante__c = 'Comprador' ORDER BY Oportunidade__c];
+Integer addComp = 0;
+
+    for (Opportunity opp : newOpportunitys) {
+          Map<String, String> mapCompradoresTxt = new Map<String, String>();
+          Map<String, String> mapCompradoresAssinaturas = new Map<String, String>();
+      String compradoresTxt = '';
+      String nomeCompradorPrincipal = '';
+      String cpfCompradorPrincipal = '';
+          String compradoresAssinaturas = '';
+		
+      for (Comprador__c comp : listaCompradores) {
+        System.debug('id do comprador: '+ comp.id + 'id da oportunidade:'+ comp.Oportunidade__c);
+        if (opp.id == comp.Oportunidade__c) {
+                  String compradorTxt = '';
+                  String compradorAssinatura = '';
+
+          if(comp.CompradorPrincipal__c) {
+            nomeCompradorPrincipal += comp.ClienteName__c;
+            cpfCompradorPrincipal += comp.CPF__c;
+          }
+			addComp = addComp+1;
+            
+          compradorTxt += comp.ClienteName__c + ', ';
+          compradorTxt += comp.ClienteNacionalidade__c + ', ';
+          compradorTxt += comp.ClienteEstadoCivil__c + ', ';
+          compradorTxt += comp.ClienteProfissao__c + ', ';
+          compradorTxt += 'carteira de identidade nº ' + comp.ClienteNumeroDocumento__c + ', ';
+          compradorTxt += 'CPF ' + comp.CPF__c + ', ';
+          compradorTxt += 'telefone(s) ' + comp.ClienteTelResCompleto__c + ' e ' + comp.ClienteTelCelCompleto__c;
+          compradorTxt += comp.ClienteEmail__c;
+                  compradorAssinatura += '<p dir="ltr" style="text-align:center">&nbsp;</p>'
+                      + '<p dir="ltr" style="text-align:center;color:white">\\S'+ addComp +'\\</p>'
+                      + '<p dir="ltr" style="text-align:center">____________________________________________________</p>'
+                      + '<p dir="ltr" style="text-align:center">' + comp.ClienteName__c + ' ' + comp.CPF__c + '</p>'
+                      + '<p dir="ltr" style="text-align:center">PROMITENTE COMPRADOR(A)</p>';
+
+          if(comp.Conjuge__c != null) {
+              addComp = addComp+1;
+            compradorTxt += ' e seu cônjuge ';
+
+            compradorTxt += comp.Conjuge__r.ClienteName__c + ', ';
+            compradorTxt += comp.Conjuge__r.ClienteNacionalidade__c + ', ';
+            compradorTxt += comp.Conjuge__r.ClienteEstadoCivil__c + ', ';
+            compradorTxt += comp.Conjuge__r.ClienteProfissao__c + ', ';
+            compradorTxt += 'carteira de identidade nº ' + comp.Conjuge__r.ClienteNumeroDocumento__c + ', ';
+            compradorTxt += 'CPF ' + comp.Conjuge__r.CPF__c + ', ';
+            compradorTxt += 'telefone(s) ' + comp.Conjuge__r.ClienteTelResCompleto__c + ' e ' + comp.Conjuge__r.ClienteTelCelCompleto__c;
+            compradorTxt += comp.Conjuge__r.ClienteEmail__c;
+                      compradorAssinatura += '<p dir="ltr" style="text-align:center">&nbsp;</p>'
+                          + '<p dir="ltr" style="text-align:center;color:white">\\S'+ addComp +'\\</p>'
+                          + '<p dir="ltr" style="text-align:center">____________________________________________________</p>'
+                          + '<p dir="ltr" style="text-align:center">' + comp.Conjuge__r.ClienteName__c + ' ' + comp.Conjuge__r.CPF__c + '</p>'
+                          + '<p dir="ltr" style="text-align:center">CÔNJUGE</p>';
+          }
+          compradorTxt += '. Residente(s) e domiciliado(s) na  ' + comp.ClienteEnderecoCompleto__c +'. ';
+                  // monta Map para realizar ordenação
+                  mapCompradoresTxt.put(comp.PercentualParticipante__c + '_' + comp.Id + '_' + comp.CompradorPrincipal__c, compradorTxt);
+                  mapCompradoresAssinaturas.put(comp.Id, compradorAssinatura);
+        }
+      }
+          // Início da regra de ordenação de compradores
+          List<String> compradoresOrdenados = new List<String>(mapCompradoresTxt.keySet());
+          compradoresOrdenados.sort();
+          String compradorPrincipal = '';
+          String demaisCompradores = '';
+          String assinaturaPrincipal = '';
+          String demaisAssinaturas = '';
+          // Ordena DESC por Percentual do participante
+          for (Integer i = compradoresOrdenados.size() - 1; i >= 0; i--) {
+              for (String key : mapCompradoresTxt.keySet()) {
+                  if (key.equals(compradoresOrdenados.get(i))) {
+                      if (key.endsWith('true')) {
+                          String keyAssinatura = key.substringAfter('_');
+                          keyAssinatura = keyAssinatura.substringBefore('_');
+                          compradorPrincipal = mapCompradoresTxt.get(key);
+                          assinaturaPrincipal = mapCompradoresAssinaturas.get(keyAssinatura);
+                      } else {
+                          String keyAssinatura = key.substringAfter('_');
+                          keyAssinatura = keyAssinatura.substringBefore('_');
+                          demaisCompradores += mapCompradoresTxt.get(key);
+                          demaisAssinaturas += mapCompradoresAssinaturas.get(keyAssinatura);
+                      }
+                  }
+              }
+          }
+          compradoresTxt = compradorPrincipal + demaisCompradores;
+          compradoresAssinaturas = assinaturaPrincipal + demaisAssinaturas;
+          // Fim da regra de ordenação
+      opp.CompradoresParaContrato__c = compradoresTxt;
+      opp.NomeCompradorPrincipal__c = nomeCompradorPrincipal;
+      opp.CpfCompradorPrincipal__c = cpfCompradorPrincipal;
+          opp.AssinaturasCompradores__c = compradoresAssinaturas;
+    }
+
+  }
+
+  public static void configuraFiadores(List<Opportunity> newOpportunitys){
+    List<Fiador__c> listaFiadores = [SELECT id, Oportunidade__c,
+                                    Name,
+                                    NacionalidadeContrato__c,
+                                    EstadoCivilLabel__c,
+                                    Profissao__c,
+                                    IdentidadeNumeros__c,
+                                    IdentidadeOrgaoExpedidor__c,
+                                    IdentidadeUF__c,
+                                    CPF__c,
+                                    TelefoneResidencial__c,
+                                    TelefoneComercial__c,
+                                    Email__c,
+                                    Endereco__c,
+                                    EndNumero__c,
+                                    EndComplemento__c,
+                                    EndBairro__c,
+                                    EndCidade__c,
+                                    EndEstado__c,
+                                    EndCEP__c,
+                                    ConjugeNome__c,
+                                    NacionalidadeConjugeContrato__c,
+                                    ConjugeEstadoCivilLabel__c,
+                                    ConjugeProfissao__c,
+                                    ConjugeIdentidadeNumeros__c,
+                                    ConjugeIdentidadeOrgaoExpedidor__c,
+                                    ConjugeIdentidadeUF__c,
+                                    ConjugeCPF__c,
+                                    ConjugeTelefoneResidencial__c,
+                                    ConjugeTelefoneComercial__c,
+                                    ConjugeEmail__c
+                                    FROM Fiador__c WHERE Oportunidade__c IN :newOpportunitys ORDER BY Oportunidade__c];
+    Integer addComp = 2;
+    for (Opportunity opp : newOpportunitys) {
+      String fiadoresTxt = '';
+      String fiadorAssinatura = '';
+      for (Fiador__c fiador : listaFiadores) {
+          addComp = addComp+1;
+        if (opp.id == fiador.Oportunidade__c) {
+            
+          fiadoresTxt += fiador.Name + ', ';
+          fiadoresTxt += fiador.NacionalidadeContrato__c + ', ';
+          fiadoresTxt += fiador.EstadoCivilLabel__c + ', ';
+          fiadoresTxt += fiador.Profissao__c + ', ';
+          fiadoresTxt += 'carteira de identidade nº ' + fiador.IdentidadeNumeros__c + ', '+ fiador.IdentidadeOrgaoExpedidor__c  +' / '+fiador.IdentidadeUF__c +', ';
+          fiadoresTxt += 'CPF ' + fiador.CPF__c;
+          if(fiador.TelefoneResidencial__c != null && fiador.TelefoneResidencial__c != '') {
+            fiadoresTxt += ', telefone(s) ' + fiador.TelefoneResidencial__c;
+            if(fiador.TelefoneComercial__c != null && fiador.TelefoneComercial__c != '') {
+              fiadoresTxt += ' e ' + fiador.TelefoneComercial__c;
+            }
+          }
+
+          if(fiador.Email__c != '' && fiador.Email__c != null) {
+            fiadoresTxt += ', endereço de email ' + fiador.Email__c + '';
+          }
+
+          fiadorAssinatura += '<p dir="ltr" style="text-align:center">&nbsp;</p>'
+                      + '<p dir="ltr" style="text-align:center;color:white">\\S'+ addComp +'\\</p>'
+                      + '<p dir="ltr" style="text-align:center">____________________________________________________</p>'
+                      + '<p dir="ltr" style="text-align:center">' + fiador.Name + ' ' + fiador.CPF__c + '</p>'
+                      + '<p dir="ltr" style="text-align:center">FIADOR(A)</p>';
+          if(addComp == 3){
+             opp.NomeFiador1__c = fiador.Name;
+             opp.EmailFiador1__c = fiador.Email__c;
+          } else if(addComp == 5){
+                   opp.NomeFiador2__c = fiador.Name;
+                   opp.EmailFiador2__c = fiador.Email__c;
+                 } 
+
+          if(fiador.ConjugeNome__c != null) {
+            addComp = addComp+1;
+            fiadoresTxt += ' e seu cônjuge ';
+
+            fiadoresTxt += fiador.ConjugeNome__c + ', ';
+            fiadoresTxt += fiador.NacionalidadeConjugeContrato__c + ', ';
+            fiadoresTxt += fiador.ConjugeEstadoCivilLabel__c + ', ';
+            fiadoresTxt += fiador.ConjugeProfissao__c + ', ';
+            fiadoresTxt += 'carteira de identidade nº ' + fiador.ConjugeIdentidadeNumeros__c + ', '+ fiador.ConjugeIdentidadeOrgaoExpedidor__c  +' / '+fiador.ConjugeIdentidadeUF__c +', ';
+            fiadoresTxt += 'CPF ' + fiador.ConjugeCPF__c;
+            if(fiador.ConjugeTelefoneResidencial__c != null && fiador.ConjugeTelefoneResidencial__c != '') {
+              fiadoresTxt += ', telefone(s) ' + fiador.ConjugeTelefoneResidencial__c;
+              if(fiador.ConjugeTelefoneComercial__c != null && fiador.ConjugeTelefoneComercial__c != '') {
+                fiadoresTxt += ' e ' + fiador.ConjugeTelefoneComercial__c;
+              }
+            }
+
+            if(fiador.ConjugeEmail__c != '' && fiador.ConjugeEmail__c != null) {
+              fiadoresTxt += ', endereço de email ' + fiador.ConjugeEmail__c + '';
+            }
+              
+                      fiadorAssinatura += '<p dir="ltr" style="text-align:center">&nbsp;</p>'
+                      + '<p dir="ltr" style="text-align:center;color:white">\\S'+ addComp +'\\</p>'
+                      + '<p dir="ltr" style="text-align:center">____________________________________________________</p>'
+                      + '<p dir="ltr" style="text-align:center">' + fiador.ConjugeNome__c + ' ' + fiador.ConjugeCPF__c + '</p>'
+                      + '<p dir="ltr" style="text-align:center">CÔNJUGE DE ' + fiador.Name + '</p>';
+              if(addComp == 4){
+                 opp.Nome_ConjugeFiador1__c = fiador.ConjugeNome__c;
+                 opp.Email_ConjugeFiador1__c = fiador.ConjugeEmail__c;
+            } else if(addComp == 6){
+                        opp.Nome_ConjugeFiador2__c = fiador.ConjugeNome__c;
+                        opp.Email_ConjugeFiador2__c = fiador.ConjugeEmail__c;
+            }
+          }
+          fiadoresTxt += '. Residente(s) e domiciliado(s) na  ' + fiador.Endereco__c + ', '+ fiador.EndNumero__c + ', '+ fiador.EndComplemento__c + ' - '+ fiador.EndBairro__c + ', '+ fiador.EndCidade__c + ' / '+ fiador.EndEstado__c + '. CEP: '+ fiador.EndCEP__c +'.';
+        }
+      }
+      opp.FiadoresParaContrato__c = fiadoresTxt;
+      opp.AssinaturasFiadores__c = fiadorAssinatura;
+    }
+
+  }
+
+  /*
+    Método: preencheValidaCamposClienteComprador()
+    Objetivo: Na fase Cadastro do Plano de Pagamento atualiza todos os compradores marcando a flag ValidaCampos__c = true
+    Haverá uma regra de validação que irá obrigar o preenchimento de todos os campos caso essa flag seja true.
+    Se a alteração cair na regra de validação do comprador, será exibido a mensagem de erro do Catch.
+    Autor: Bárbara Bicalho
+    Data: 08/04/2019
+    Autor Ultima Edição: Átila/Bárbara Bicalho
+    Data Ultima Edição: 09/04/2019
+  */
+  public static void preencheValidaCamposClienteComprador(List<Opportunity> newOpportunitys, Map<Id,Opportunity> oldMap){
+
+    for (Opportunity oppNew : newOpportunitys) {
+      Opportunity oppOld = oldMap.get(oppNew.id);
+
+      if(OpportunityAvoidRecursion.isFirstRun2()) {
+              
+        if (
+          Trigger.isUpdate
+          &&
+          oppNew.StageName != 'Prospect'
+          &&
+          oppNew.StageName != 'Proposta'
+          &&
+          oppNew.StageName != 'Análise de Crédito'
+          &&
+          oppOld.StatusAtividade__c != oppNew.StatusAtividade__c
+          &&
+          oppNew.StatusAtividade__c != 'Não Iniciado'
+          &&
+          oppNew.StatusAtividade__c != 'Em Andamento'
+          //&&
+          //oppNew.StatusAtividade__c == 'Finalizado'
+          ) {
+
+          try {
+            Boolean verdadeiro = true;
+            List<Comprador__c> compradoresToUpdate = new List<Comprador__c>();
+
+            List<Comprador__c> compradores = [SELECT id, Cliente__c, ValidaCampos__c FROM Comprador__c WHERE Oportunidade__c = :oppNew.id];
+
+            for(Comprador__c c:compradores) {
+              c.ValidaCampos__c = verdadeiro;
+              compradoresToUpdate.add(c);
+            }
+
+
+            update compradoresToUpdate;
+          } catch(exception e) {
+            oppNew.addError('Para salvar a alteração, é necessário preencher os todos os campos do cliente comprador.' + ' Erro: ' + e);
+          }
+        }
+      }
+    }
+  }
+
+  public static void AlteracaoMacroFase(List<opportunity> newOpp){
+    list<String> fase = new list<String>();
+
+    for ( opportunity opp : newOpp ) {
+      fase.add(opp.StageName);
+    }
+
+    BuscarMacroFase(fase, newOpp);
+
+  }
+
+  public static void AlteracaoMacroFase(List<opportunity> newOpp, Map<id, opportunity> oldMap){
+    list<String> fase = new list<String>();
+
+    for ( opportunity opp : newOpp ) {
+      if ( opp.stageName != oldMap.get(opp.id).stageName)
+        fase.add(opp.StageName);
+    }
+
+    BuscarMacroFase(fase, newOpp);
+
+  }
+
+  Public static void BuscarMacroFase(List<String> fase, List<opportunity> newOpp){
+
+    list<Fase__mdt> metadata = [select MacroFase__c, FaseOportunidade__c from Fase__mdt where FaseOportunidade__c in :fase];
+
+    for ( opportunity opp : newOpp ) {
+      for ( Fase__mdt metadado : metadata ) {
+        if ( opp.StageName == metadado.FaseOportunidade__c ) {
+          opp.MacroEtapa__c = metadado.MacroFase__c;
+        }
+      }
+    }
+  }
+}
